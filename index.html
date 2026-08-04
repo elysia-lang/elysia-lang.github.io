@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Elysia Programming Language</title>
+<meta name="description" content="A pure functional language with uniqueness types, effects, and deterministic parallelism. Currently under development.">
+<meta property="og:title" content="The Elysia Programming Language">
+<meta property="og:description" content="A pure functional language with uniqueness types, effects, and deterministic parallelism. Currently under development.">
+<meta property="og:url" content="https://elysia-lang.org/">
+<meta property="og:type" content="website">
+<style>
+  /* Palette: dim rose-gray base with sakura pink / wisteria purple accents; purple-black in dark mode.
+     Roles: pink carries structure and the signature (fingerprint bar, labels);
+     purple carries interaction (links, focus). */
+  :root {
+    --bg: #e8e2e4;
+    --ink: #2b2430;
+    --ink-soft: #5f5563;
+    --rule: #d3c9ce;
+    --pink: #a53d6d;
+    --pink-soft: #a53d6d1a;
+    --purple: #675399;
+    --mono: "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1620;
+      --ink: #ede7ee;
+      --ink-soft: #a99fb3;
+      --rule: #362e40;
+      --pink: #e794bd;
+      --pink-soft: #e794bd1f;
+      --purple: #b4a4e2;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 17px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.65;
+  }
+  main {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 0 1.25rem 5rem;
+  }
+
+  /* Fingerprint bar: 32 cells derived from the SHA-256 of the Part I
+     specification document at the current frozen revision (v0.21.1),
+     2852e91f...46d6. One cell per byte; each cell's color mixes the two
+     accents in oklab with pink share p = byte/255 * 100, rounded to one
+     decimal. A plain pink fallback is declared first for engines
+     without that mixing function. */
+  .fpbar {
+    display: flex;
+    height: 6px;
+    margin: 0 0 3.5rem;
+  }
+  .fpbar span { flex: 1; }
+
+  header.hero { margin: 4.5rem 0 3.5rem; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--pink);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+    line-height: 1.08;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 0 0 1.1rem;
+  }
+  .tagline {
+    font-size: 1.18rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 36rem;
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 3rem 0 0.8rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--rule);
+  }
+  p { margin: 0 0 1rem; }
+  a { color: var(--purple); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { text-decoration-thickness: 2px; }
+  :focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+  code { background: var(--pink-soft); padding: 0.08em 0.3em; border-radius: 3px; }
+
+  dl.glance {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.45rem 1.4rem;
+    margin: 1.2rem 0 0;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--rule);
+  }
+  dl.glance dt {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding-top: 0.18em;
+  }
+  dl.glance dd { margin: 0; }
+
+  ul.features { margin: 0.4rem 0 1rem; padding-left: 1.2rem; }
+  ul.features li { margin: 0 0 0.45rem; }
+  ul.features li::marker { color: var(--pink); }
+
+  .ledger-wrap { overflow-x: auto; }
+  table.ledger {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    margin: 1.2rem 0 0.8rem;
+    font-size: 0.9rem;
+  }
+  table.ledger th {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 500;
+    text-align: left;
+    padding: 0 1rem 0.4rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.ledger td {
+    vertical-align: top;
+    padding: 0.55rem 1rem 0.55rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.ledger td:last-child, table.ledger th:last-child { padding-right: 0; }
+  .hash {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    word-break: break-all;
+    color: var(--ink-soft);
+  }
+  .docname { font-family: var(--mono); font-size: 0.78rem; word-break: break-all; }
+  .proofs { font-family: var(--mono); font-size: 0.78rem; white-space: nowrap; }
+  .ledger-note { font-size: 0.88rem; color: var(--ink-soft); }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+  @media (max-width: 480px) {
+    dl.glance { grid-template-columns: 1fr; gap: 0.1rem; }
+    dl.glance dt { margin-top: 0.6rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="fpbar" aria-hidden="true">
+    <span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 15.7%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 32.2%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 91.4%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 12.2%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 59.2%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 83.5%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 6.3%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 66.7%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 95.3%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 63.9%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 76.1%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 9.4%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 100.0%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 54.1%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 31.0%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 89.4%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 54.5%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 64.3%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 47.8%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 91.0%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 35.3%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 27.8%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 98.4%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 5.5%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 62.4%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 66.3%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 20.4%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 47.5%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 39.2%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 57.3%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 27.5%, var(--purple))"></span><span style="background:var(--pink);background:color-mix(in oklab, var(--pink) 83.9%, var(--purple))"></span>
+  </div>
+
+  <header class="hero">
+    <p class="eyebrow">elysia-lang.org</p>
+    <h1>The Elysia Programming&nbsp;Language</h1>
+    <p class="tagline">A pure functional language with uniqueness types, effects, and deterministic parallelism. Currently under development.</p>
+  </header>
+
+  <section aria-label="Overview">
+    <p>Elysia is a general-purpose programming language currently under development. It is a pure, strictly evaluated functional language with uniqueness types, a static effect system, and deterministic parallelism, and provides first-class tensor computation targeting CPU and GPU backends.</p>
+
+    <dl class="glance">
+      <dt>Name</dt><dd>Elysia</dd>
+      <dt>Paradigm</dt><dd>Pure, strict, functional</dd>
+      <dt>Extension</dt><dd><code>.ely</code></dd>
+      <dt>Status</dt><dd>Specification v0.21.1, in development</dd>
+      <dt>Website</dt><dd><a href="https://elysia-lang.org/">elysia-lang.org</a></dd>
+      <dt>Repository</dt><dd><a href="https://github.com/elysia-lang">github.com/elysia-lang</a></dd>
+      <dt>License</dt><dd>To be announced at v1.0</dd>
+    </dl>
+  </section>
+
+  <section aria-labelledby="features-h">
+    <h2 id="features-h">Features</h2>
+    <ul class="features">
+      <li>Pure functional semantics with strict evaluation</li>
+      <li>Uniqueness types</li>
+      <li>Static effect system</li>
+      <li>Deterministic parallelism</li>
+      <li>First-class tensor computation, with CPU and GPU backends</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="status-h">
+    <h2 id="status-h">Status</h2>
+    <p>The language specification is at revision v0.21.1 and is being developed privately. The specification and a reference implementation, written in Haskell, will be published when the design reaches v1.0. No release date is announced.</p>
+  </section>
+
+  <section aria-labelledby="fingerprints-h">
+    <h2 id="fingerprints-h">Specification fingerprints</h2>
+    <p>As each revision of the specification is frozen, the SHA-256 fingerprints of its normative documents are recorded here. The frozen documents will be released when the specification is published, at which point these fingerprints can be verified independently. Each document is timestamped individually; its SHA-256 checksum file and OpenTimestamps proof are linked alongside. Timestamp proofs are anchored in the Bitcoin blockchain via <a href="https://opentimestamps.org/">OpenTimestamps</a>; attestation dates are those of stamping.</p>
+
+    <div class="ledger-wrap">
+    <table class="ledger">
+      <thead>
+        <tr><th scope="col">Revision</th><th scope="col">Frozen</th><th scope="col">Document</th><th scope="col">SHA-256</th><th scope="col">Proofs</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>v0.16.0</td>
+          <td>2026-06-12</td>
+          <td class="docname">elysia_language_spec_complete_en_v0_16_0.md</td>
+          <td class="hash">18c999bd88bc8634daa8a644c14d39925047eacec980a7cc3f9600bdbcda5f54</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_complete_en_v0_16_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_complete_en_v0_16_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.17.0</td>
+          <td>2026-07-06</td>
+          <td class="docname">elysia_language_spec_part1_core_en_v0_17_0.md</td>
+          <td class="hash">588a38de3fcdd6b209633a3e5a929e0aad367eb1252743aa4bdf7b2d57c0d408</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part1_core_en_v0_17_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part1_core_en_v0_17_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.17.0</td>
+          <td>2026-07-06</td>
+          <td class="docname">elysia_language_spec_part2_systems_en_v0_17_0.md</td>
+          <td class="hash">129cf1454b766d50d7778a504b05b5b8ae3f729ef85e8f7be87532354eb2d095</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part2_systems_en_v0_17_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part2_systems_en_v0_17_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.19.0</td>
+          <td>2026-07-11</td>
+          <td class="docname">elysia_language_spec_part1_core_en_v0_19_0.md</td>
+          <td class="hash">a44ec78dc03f31db222e2b7dc520d8b14e852c41507dc9c764346320d49ac492</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part1_core_en_v0_19_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part1_core_en_v0_19_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.19.0</td>
+          <td>2026-07-11</td>
+          <td class="docname">elysia_language_spec_part2_systems_en_v0_19_0.md</td>
+          <td class="hash">b2c7c55c2f8fe65dd959acd05223a1daa79da65e3610e981adae571eb4d92656</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part2_systems_en_v0_19_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part2_systems_en_v0_19_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.20.0</td>
+          <td>2026-07-12</td>
+          <td class="docname">elysia_language_spec_part1_core_en_v0_20_0.md</td>
+          <td class="hash">642f28b9b5547d84f925657d7cbb826034182e353ffc24f07c6373f77b5f1177</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part1_core_en_v0_20_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part1_core_en_v0_20_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.20.0</td>
+          <td>2026-07-12</td>
+          <td class="docname">elysia_language_spec_part2_systems_en_v0_20_0.md</td>
+          <td class="hash">c33e091802d37190cf27b16f75582b91960dcaf4371ee5e46f1644bd898f76a2</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part2_systems_en_v0_20_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part2_systems_en_v0_20_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.21.0</td>
+          <td>2026-07-31</td>
+          <td class="docname">elysia_language_spec_part1_core_en_v0_21_0.md</td>
+          <td class="hash">26239a073abdab55a0f1380e63e47781a070fd1677a909ab50b060151d889bff</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part1_core_en_v0_21_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part1_core_en_v0_21_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.21.0</td>
+          <td>2026-07-31</td>
+          <td class="docname">elysia_language_spec_part2_systems_en_v0_21_0.md</td>
+          <td class="hash">234dd8d6927bcffc222ac54c36dec797367c9051be5ef525ebfb285331e29031</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part2_systems_en_v0_21_0.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part2_systems_en_v0_21_0.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.21.1</td>
+          <td>2026-08-01</td>
+          <td class="docname">elysia_language_spec_part1_core_en_v0_21_1.md</td>
+          <td class="hash">2852e91f97d510aaf3a3c218ff8a4fe48ba47ae85a47fb0e9fa93479649246d6</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part1_core_en_v0_21_1.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part1_core_en_v0_21_1.md.ots">.ots</a></td>
+        </tr>
+        <tr>
+          <td>v0.21.1</td>
+          <td>2026-08-01</td>
+          <td class="docname">elysia_language_spec_part2_systems_en_v0_21_1.md</td>
+          <td class="hash">f40f78b8c9e5ee6ba1f5ece7ccad1683ac760248ed1d1264cf356142efc81c49</td>
+          <td class="proofs"><a href="fingerprints/elysia_language_spec_part2_systems_en_v0_21_1.md.sha256">.sha256</a> <a href="fingerprints/elysia_language_spec_part2_systems_en_v0_21_1.md.ots">.ots</a></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="ledger-note">This ledger is append-only: a row, once published, is never edited or removed.</p>
+  </section>
+
+  <section aria-labelledby="naming-h">
+    <h2 id="naming-h">Naming</h2>
+    <p>The name of the language is Elysia. The full, formal name is the Elysia Programming Language. Where the short name alone could be ambiguous, we write <code>elysia-lang</code> &mdash; which is also the name of the GitHub organization and the domain of this site. Elysia source files use the <code>.ely</code> extension, and packages released by this project carry the <code>elysia-lang-</code> prefix.</p>
+    <p>Elysia is unrelated to ElysiaJS, the web framework for Bun.</p>
+  </section>
+
+  <section aria-labelledby="contact-h">
+    <h2 id="contact-h">Contact</h2>
+    <p>A contact address for the project will be published here. Until then, the <a href="https://github.com/elysia-lang">GitHub organization</a> is the project&rsquo;s public point of presence.</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 The Elysia Programming Language project. The bar at the top of this page is the SHA-256 fingerprint of the Part&nbsp;I specification document at the current frozen revision &mdash; one cell per byte, each byte rendered as a mix of the two accent colors.</p>
+  </footer>
+</main>
+</body>
+</html>
